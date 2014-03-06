@@ -21,6 +21,10 @@ void CFrog::hop(CActor* actor){
 	frogHop(m_pos_x, m_pos_y, &m_pos_x, &m_pos_y, &m_state);
 	int newPosition = getCellFromPosition(m_pos_x, m_pos_y);	
 	m_send_buffer[0] = m_infected;	
+
+#ifdef VERBOSE
+	printf("Frog %ld hopped to %ld cell\n", m_rank, newPosition);
+#endif
 	
 	actor->send_message(m_send_buffer, m_send_count, 
 				newPosition+2, MSG_VISIT_CELL);
@@ -60,7 +64,12 @@ void CFrog::spawn(CActor* actor){
 
 bool CFrog::on_new_message(int source, int message_id, CActor* actor){
 	
- 
+//return false;
+
+	//if(source == 0) {
+	//printf("Frog %d got message from %ld\n", m_rank, source);
+	//}
+
 	if(message_id == MSG_CELL_INFO){//hoped to new cell
 		m_population[m_hops%POP_CELLS] = m_recv_buffer[0];
 		m_inf_level[m_hops%INF_CELLS]  = m_recv_buffer[1];
@@ -90,7 +99,7 @@ bool CFrog::on_new_message(int source, int message_id, CActor* actor){
 			}
 			avg_inf_level /= INF_CELLS;
 			m_infected = willCatchDisease(avg_inf_level, &m_state);
-			#ifndef VERBOSE
+			#ifdef VERBOSE
 			if(m_infected)
 				printf("Frog %ld is infected\n", m_rank);
 			#endif
@@ -99,7 +108,7 @@ bool CFrog::on_new_message(int source, int message_id, CActor* actor){
 		//will die?		
 		if((m_infected == 1) && (m_hops%700 == 0)){
 			if(willDie(&m_state)){
-				#ifndef VERBOSE
+				#ifdef VERBOSE
 				printf("Frog %ld is dead\n", m_rank);
 				#endif
 				return false;

@@ -16,7 +16,7 @@ INC= \
 #	No user-defined include files at present - list here if required.
 
 SRC= \
-	main.cpp actor.cpp frog.cpp cell.cpp timer.cpp environment.cpp disease_sim_factory.cpp pool.c frog-functions.c ran2.c
+	pool.c main.cpp actor.cpp frog.cpp cell.cpp timer.cpp environment.cpp disease_sim_factory.cpp frog-functions.c ran2.c
 
 #
 # No need to edit below this line

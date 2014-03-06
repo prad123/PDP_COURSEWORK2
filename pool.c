@@ -13,7 +13,7 @@
 #define PP_DEBUG 0
 
 // Example command package data type which can be extended
-static MPI_Datatype PP_COMMAND_TYPE;
+MPI_Datatype PP_COMMAND_TYPE;
 
 // Internal pool global state
 static int PP_myRank;
@@ -50,8 +50,9 @@ int processPoolInit() {
 		if (PP_DEBUG) printf("[Master] Initialised Master\n");
 		return 2;
 	} else {
-		MPI_Recv(&in_command, 1, PP_COMMAND_TYPE, 0, PP_CONTROL_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-		return handleRecievedCommand();
+		MPI_Recv(&in_command, 1, PP_COMMAND_TYPE, 0, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+//printf("WAKING PROCESS %ld\n", PP_myRank)	;
+	return handleRecievedCommand();
 	}
 }
 
@@ -60,14 +61,29 @@ int processPoolInit() {
  */
 void processPoolFinalise() {
 	if (PP_myRank == 0) {
+//struct PP_Control_Package out_command = createCommandPackage(PP_STOP);
+//out_command.command = PP_STOP;
+//out_command.data = 1;
+//out_command.param_a = 0.0f;
+//out_command.param_b = 0.0f;
+//out_command.param_c = 0.0f;
+//MPI_Ssend(&out_command, 1, PP_COMMAND_TYPE, 4, 1, MPI_COMM_WORLD);
+
+
 		if (PP_active != NULL) free(PP_active);
 		int i;
 		for(i=0;i<PP_numProcs-1;i++) {
-			if (PP_DEBUG) printf("[Master] Shutting down process %d\n", i);
+if (PP_DEBUG) 
+printf("[Master] Shutting down process %d\n", i);
 			struct PP_Control_Package out_command = createCommandPackage(PP_STOP);
-			MPI_Send(&out_command, 1, PP_COMMAND_TYPE, i+1, PP_CONTROL_TAG, MPI_COMM_WORLD);
+			MPI_Send(&out_command, 1, PP_COMMAND_TYPE, i+1, 1, MPI_COMM_WORLD);
 		}
+
+
 	}
+
+
+//printf("PROCESS %ld at barrier\n", PP_myRank);
 	MPI_Barrier(MPI_COMM_WORLD);
 	MPI_Type_free(&PP_COMMAND_TYPE);
 }
@@ -149,8 +165,10 @@ int workerSleep() {
 			// The command was to wake up, it has done the work and now it needs to switch to sleeping mode
 			struct PP_Control_Package out_command = createCommandPackage(PP_SLEEPING);
 			MPI_Send(&out_command, 1, PP_COMMAND_TYPE, 0, PP_CONTROL_TAG, MPI_COMM_WORLD);
-			if (PP_pollRecvCommandRequest != MPI_REQUEST_NULL) MPI_Wait(&PP_pollRecvCommandRequest, MPI_STATUS_IGNORE);
+		//	if (PP_pollRecvCommandRequest != MPI_REQUEST_NULL) MPI_Wait(&PP_pollRecvCommandRequest, MPI_STATUS_IGNORE);
 		}
+
+		MPI_Recv(&in_command, 1, PP_COMMAND_TYPE, 0, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		return handleRecievedCommand();
 	} else {
 		errorMessage("Master process called worker poll");
@@ -230,17 +248,13 @@ static int handleRecievedCommand() {
 	// We have just (most likely) received a command, therefore decide what to do
 	if (in_command.command==PP_WAKE) {
 		// If we are told to wake then post a recv for the next command and return true to continues
-		MPI_Irecv(&in_command, 1, PP_COMMAND_TYPE, 0, PP_CONTROL_TAG, MPI_COMM_WORLD, &PP_pollRecvCommandRequest);
+		//MPI_Irecv(&in_command, 1, PP_COMMAND_TYPE, 0, PP_CONTROL_TAG, MPI_COMM_WORLD, &PP_pollRecvCommandRequest);
 		if (PP_DEBUG) printf("[Worker] Process %d woken to work\n", PP_myRank);
 		return 1;
 	} else if (in_command.command == PP_STOP) {
 		// Stopping so return zero to denote stop
 		if (PP_DEBUG) printf("[Worker] Process %d commanded to stop\n", PP_myRank);
 		return 0;
-	} else if (in_command.command == PP_NEWMESSAGE) {
-		MPI_Irecv(&in_command, 1, PP_COMMAND_TYPE, 0, PP_CONTROL_TAG, MPI_COMM_WORLD, &PP_pollRecvCommandRequest);
-		printf("RECEIVED PP_NEWMESSAGE %ld\n", PP_myRank);
-		return 1;
 	} else {
 		errorMessage("Unexpected control command");
 		return 0;
@@ -260,6 +274,7 @@ static void errorMessage(char * message) {
  * the parent rank) can be associated with commands
  */
 static void initialiseType() {
+/*	
 	struct PP_Control_Package package;
 	MPI_Aint pckAddress, dataAddress;
 	MPI_Address(&package, &pckAddress);
@@ -269,6 +284,30 @@ static void initialiseType() {
 	MPI_Aint offsets[3] = {0, dataAddress - pckAddress};
 	MPI_Type_create_struct(nitems, blocklengths, offsets, types, &PP_COMMAND_TYPE);
 	MPI_Type_commit(&PP_COMMAND_TYPE);
+*/
+
+	MPI_Datatype oldtypes[3];
+	MPI_Aint offsets[3], extent_char, extent_int;
+	int blockcounts[3];
+	//MPI_Status stat;
+	offsets[0] 	= 0;
+	oldtypes[0]	= MPI_CHAR;
+	blockcounts[0] 	= 1;
+	
+	MPI_Type_extent(MPI_CHAR, &extent_char);
+	offsets[1]   	= extent_char;
+	oldtypes[1] 	= MPI_INT;
+	blockcounts[1] 	= 1;
+
+	MPI_Type_extent(MPI_INT, &extent_int);
+	offsets[2]	= extent_char + extent_int;
+	oldtypes[2]	= MPI_FLOAT;
+	blockcounts[2]	= 3;
+	
+	MPI_Type_create_struct(3, blockcounts, offsets, 
+				oldtypes, &PP_COMMAND_TYPE);
+	MPI_Type_commit(&PP_COMMAND_TYPE);
+	
 }
 
 /**
@@ -278,4 +317,42 @@ static struct PP_Control_Package createCommandPackage(enum PP_Control_Command de
 	struct PP_Control_Package package;
 	package.command = desiredCommand;
 	return package;
+}
+
+void sendMessage(void* buffer, int dest, int message_id){
+
+	static MPI_Request request;
+	struct PP_Control_Package message;
+
+	message.command = PP_CUSTOM;
+	message.param_a = ((float*)buffer)[0];
+	message.param_b = ((float*)buffer)[1];
+	message.param_c = ((float*)buffer)[2];
+
+	MPI_Isend(&message, 1, PP_COMMAND_TYPE, dest, 
+				message_id, MPI_COMM_WORLD, &request);
+}
+
+void recvMessage(void* buffer, int* source, int* msg_id){
+	MPI_Status status;
+	struct PP_Control_Package message;
+
+	MPI_Recv(&message, 1, PP_COMMAND_TYPE, 
+					MPI_ANY_SOURCE, MPI_ANY_TAG,
+					MPI_COMM_WORLD, &status);
+
+	((float*)buffer)[0] = message.param_a;
+	((float*)buffer)[1] = message.param_b;
+	((float*)buffer)[2] = message.param_c;
+
+	*source = status.MPI_SOURCE;
+
+//if(*source == 0 && message.command != PP_CUSTOM)	
+//printf("MSG %ld from %ld\n", message.command, status.MPI_SOURCE);
+
+	if(status.MPI_SOURCE == 0 && message.command == PP_STOP){
+		*msg_id = PP_STOP;
+	} else {
+		*msg_id = status.MPI_TAG;
+	}
 }

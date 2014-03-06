@@ -8,13 +8,16 @@ enum PP_Control_Command {
 	PP_WAKE=2,
 	PP_STARTPROCESS=3,
 	PP_RUNCOMPLETE=4,
-	PP_NEWMESSAGE=5
+	PP_CUSTOM=5
 };
 
 // An example data package which combines the command with some optional data, an example and can be extended
 struct PP_Control_Package {
 	enum PP_Control_Command command;
-    int data;
+    	int data;
+	float param_a;
+	float param_b;
+	float param_c;
 };
 
 // Initialises the process pool
@@ -33,5 +36,8 @@ int startWorkerProcess();
 void shutdownPool();
 // Retrieves the optional data associated with the command, provides an example of how this can be done
 int getCommandData();
+
+void sendMessage(void* buffer, int dest, int message_id);
+void recvMessage(void* buffer, int* source, int* msg_id);
 
 #endif /* POOL_H_ */

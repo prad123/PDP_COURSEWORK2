@@ -41,7 +41,10 @@ bool CTimer::on_new_message(int source, int message_id, CActor* actor){
 
 		for(int i=0; i < m_iterations; ++i){
 			sleep(m_interval);
+actor->spawn_process();
+continue;
 
+			/*
 			sprintf(pop_file_name, "population_year_%ld.txt", i);	
 			sprintf(inf_file_name, "infection_year_%ld.txt", i);
 			
@@ -54,7 +57,7 @@ bool CTimer::on_new_message(int source, int message_id, CActor* actor){
 					m_send_count, j,MSG_MONSOON_ARRIVED);
 				actor->recv_message(m_recv_buffer, 2, j);
 			
-				/*record data in file*/
+				//record data in file
 				out_pop << m_recv_buffer[0] << endl;
 				out_inf << m_recv_buffer[1] << endl;
 
@@ -65,10 +68,13 @@ bool CTimer::on_new_message(int source, int message_id, CActor* actor){
 
 			out_pop.close();
 			out_inf.close();
+			*/
 		}
 		
-		printf("End timer\n");
+	//	printf("End timer\n");
 	}
+	
+	printf("End Simulation\n");
 	actor->shutdown();
 	
 	return false;

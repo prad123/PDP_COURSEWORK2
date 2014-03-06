@@ -9,6 +9,8 @@
 
 #include "pool.h"
 
+extern MPI_Datatype PP_COMMAND_TYPE;
+
 CActor::CActor(CCallbackFactory& callback_factory)
 	: m_factory(callback_factory){}
 
@@ -28,14 +30,59 @@ void CActor::send_message(int dest, int message_id, CCallback* callback){
 }*/
 
 void CActor::send_message(void* buffer, int length, int dest, int message_id){
-	MPI_Ssend(buffer, length, MPI_FLOAT, dest, message_id, MPI_COMM_WORLD);
+	sendMessage(buffer, dest, message_id);
+	
+	/*
+	static MPI_Request request;
+	struct PP_Control_Package message;
+
+	message.command = PP_CUSTOM;
+	message.param_a = ((float*)buffer)[0];
+	message.param_b = ((float*)buffer)[1];
+	message.param_c = ((float*)buffer)[2];
+
+	MPI_Isend(&message, 1, PP_COMMAND_TYPE, dest, 
+				message_id, MPI_COMM_WORLD, &request);
+	*/
+
+	//MPI_Ssend(&message, 1, PP_COMMAND_TYPE, dest, 
+					//message_id, MPI_COMM_WORLD);
+	//MPI_Ssend(buffer, length, MPI_FLOAT, dest, message_id, MPI_COMM_WORLD);
 }
 
-void CActor::recv_message(void* buffer, int length, int source){
+void CActor::recv_message(void* buffer, int length, int* source, int* msg_id){
+	recvMessage(buffer, source, msg_id);
+
+
+	/*
 	MPI_Status status;
+	struct PP_Control_Package message;
+
+	MPI_Recv(&message, 1, PP_COMMAND_TYPE, 
+					MPI_ANY_SOURCE, MPI_ANY_TAG,
+					MPI_COMM_WORLD, &status);
+
+	((float*)buffer)[0] = message.param_a;
+	((float*)buffer)[1] = message.param_b;
+	((float*)buffer)[2] = message.param_c;
+
+	*source = status.MPI_SOURCE;
+
+//if(*source == 0 && message.command != PP_CUSTOM)	
+printf("MSG %ld from %ld\n", message.command, status.MPI_SOURCE);
+
+	if(status.MPI_SOURCE == 0 && message.command == PP_STOP){
+		*msg_id = PP_STOP;
+	} else {
+		*msg_id = status.MPI_TAG;
+	}
+	*/
+	//printf("RANK %ld\n", message.command);
+	/*MPI_Status status;
 	MPI_Recv(buffer, length, MPI_FLOAT,  
 		 source, MPI_ANY_TAG, 
 		 MPI_COMM_WORLD, &status);
+	*/
 }
 
 void CActor::shutdown(){
@@ -56,15 +103,31 @@ void CActor::run_message_loop(){
 
 	if(statusCode == 1){
 		while(1){
-			MPI_Status status;
+			/*MPI_Status status;
 			MPI_Recv(callback->get_recv_buffer(),
 			 	callback->get_recv_buffer_count(),
 			 	MPI_FLOAT,  MPI_ANY_SOURCE,
-			 	MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+			 	MPI_ANY_TAG, MPI_COMM_WORLD, &status);*/
+	
+			int source, msg_id;	
+			//printf("%d waiting for message\n", myRank);
+			recv_message(callback->get_recv_buffer(), 0, 
+							&source, &msg_id);
+			//printf("%d got message\n", myRank);
 
-			bool done = callback->on_new_message(status.MPI_SOURCE,
+			if(msg_id == PP_STOP) {
+			//	printf("RECEIVED MESSAGE TO DIE %ld\n", myRank);
+				break;
+			}
+
+			bool done = callback->on_new_message(source, msg_id,
+									this);
+
+			/*bool done = callback->on_new_message(status.MPI_SOURCE,
 							     status.MPI_TAG,
 							     this);
+			*/
+
 			if(!done){
 				printf("Killing %ld\n", myRank);
 				callback->on_stop(this);
@@ -79,24 +142,22 @@ void CActor::run_message_loop(){
 					continue;
 					
 				} else { 
-					printf("Killing %ld\n", myRank);
+					printf("No work available Killing %ld\n", myRank);
 					break;
 				}
 			}
-			//1. might sleep and wake to create a new frog
-			//2. 
-
 		}
-	} else {
+	} else if (statusCode == 2){
 		//callback->on_load(this);
 		int masterStatus = 1;
 		while(masterStatus){
 			masterStatus = masterPoll();
 		}	
+		callback->on_stop(this);
 		printf("MASTER DEAD\n");
 	}
 
-	callback->on_stop(this);
+	//callback->on_stop(this);
 
 	processPoolFinalise();
 	MPI_Finalize();

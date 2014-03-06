@@ -28,7 +28,7 @@ public:
 	*@param msg_length - receive buffer length
 	*@param source - sender identifier 	
  	*/
-	void recv_message(void* buffer, int msg_length, int source);
+	void recv_message(void* buffer, int msg_length, int *source, int*);
 
 	/**shutdown actor
  	*/
