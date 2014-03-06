@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <fstream>
 #include <iostream>
+#include "message_defs.h"
+
 using namespace std;
 
 CTimer::CTimer(int rank, int cell_begin, int cell_end, 
@@ -19,11 +21,14 @@ CTimer::CTimer(int rank, int cell_begin, int cell_end,
 	#ifdef VERBOSE
 	printf("Timer %ld is created\n", m_rank);
 	#endif
+
+	m_send_count = sizeof(m_send_buffer)/sizeof(m_send_buffer[0]);
+	m_recv_count = sizeof(m_recv_buffer)/sizeof(m_recv_buffer[0]);
 }
 
 bool CTimer::on_new_message(int source, int message_id, CActor* actor){
 
-	if(message_id == 4){//start timer
+	if(message_id == MSG_START_TIMER){//start timer
 
 		#ifdef VERBOSE
 		printf("Starting timer\n");
@@ -45,7 +50,8 @@ bool CTimer::on_new_message(int source, int message_id, CActor* actor){
 
 			for(int j = m_cell_begin; j <= m_cell_end; ++j){
 				//notify arrival of monsoon
-				actor->send_message(m_send_buffer, 4, j, 2);
+			  	actor->send_message(m_send_buffer,
+					m_send_count, j,MSG_MONSOON_ARRIVED);
 				actor->recv_message(m_recv_buffer, 2, j);
 			
 				/*record data in file*/

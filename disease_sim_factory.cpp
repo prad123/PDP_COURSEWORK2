@@ -18,15 +18,21 @@ CDiseaseSimFactory::CDiseaseSimFactory(int num_cells,
 					m_iterations(iterations){}
 
 CCallback* CDiseaseSimFactory::make_callback(unsigned int processId){
+
 	if(processId == 0){
 		return new CEnvironment(m_num_cells,
 					m_initial_frogs,
 					m_infected_frogs);
 	} else if(processId == 1){
 
+		const int first_cell_id = 2;
+		const int last_cell_id  = m_num_cells + 1;
+		const int timer_interval = 1; //secnds
+
 		return new CTimer(processId, 
-				  2, m_num_cells+1, 
-				  1, 10/*m_iterations*/);
+				  first_cell_id, 
+			          last_cell_id, 
+				  timer_interval, m_iterations);
 
 	} else if(processId <= m_num_cells+1 ){
 		return new CCell(processId);
