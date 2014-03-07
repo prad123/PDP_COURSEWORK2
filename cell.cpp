@@ -7,6 +7,7 @@
 #include <stdio.h>
 
 CCell::CCell(int rank) : m_rank(rank){
+	//initialize cell state variables
 	#ifdef VERBOSE
 	printf("Cell %ld is created\n", m_rank);
 	#endif
@@ -23,16 +24,14 @@ void CCell::visit(int source, CActor* actor){
 		m_infection_level += 1.0f;
 	}
 		
-	actor->send_message(m_send_buffer, m_send_count, 
-						source, MSG_CELL_INFO);
+	actor->send_message(m_send_buffer, source, MSG_CELL_INFO);
 }
 
 void CCell::wipe_disease(int source, CActor* actor){
 	m_send_buffer[0] = m_population;
 	m_send_buffer[1] = m_infection_level;
 
-	actor->send_message(m_send_buffer, 2/*m_send_count*/, 
-						source, MSG_CELL_INFO);
+	actor->send_message(m_send_buffer, source, MSG_CELL_INFO);
 
 	m_population      = 0.0f;
 	m_infection_level = 0.0f;
@@ -52,18 +51,6 @@ bool CCell::on_new_message(int source, int message_id, CActor* actor){
 		#endif
 	
 		visit(source, actor);
-	/*	
-		m_send_buffer[0] = m_population;
-		m_send_buffer[1] = m_infection_level;
-
-		m_population += 1.0f;
-		if(m_recv_buffer[0] != 0){//frog is infected
-			m_infection_level += 1.0f;
-		}
-		
-		actor->send_message(m_send_buffer, m_send_count, 
-						source, MSG_CELL_INFO);
-	*/
 
 	} else if (message_id == MSG_MONSOON_ARRIVED){//monsoon arrived
 
@@ -71,16 +58,7 @@ bool CCell::on_new_message(int source, int message_id, CActor* actor){
 		printf("Monsoon arrived in cell %ld\n", m_rank);
 		#endif
 		wipe_disease(source, actor);
-		/*
-		m_send_buffer[0] = m_population;
-		m_send_buffer[1] = m_infection_level;
 
-		actor->send_message(m_send_buffer, m_send_count, 
-						source, MSG_CELL_INFO);
-
-		m_population      = 0.0f;
-		m_infection_level = 0.0f;
-		*/
 	}
 	
 	return true;

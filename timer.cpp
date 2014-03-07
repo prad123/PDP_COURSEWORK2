@@ -18,6 +18,7 @@ CTimer::CTimer(int rank, int cell_begin, int cell_end,
 			m_cell_end(cell_end),
 			m_interval(interval),
 			m_iterations(iterations){
+	//initialize timer state
 	#ifdef VERBOSE
 	printf("Timer %ld is created\n", m_rank);
 	#endif
@@ -30,48 +31,43 @@ bool CTimer::on_new_message(int source, int message_id, CActor* actor){
 
 	if(message_id == MSG_START_TIMER){//start timer
 
-		#ifdef VERBOSE
-		printf("Starting timer\n");
-		#endif
+		printf("Starting simulation...\n");
+	
 
-		ofstream out_pop; //file to write cell population
-		ofstream out_inf; //file to write cell infection
-		char pop_file_name[255];
-		char inf_file_name[255];
+		ofstream out_file; //file to write cell details
+		char file_name[255];
 
 		for(int i=0; i < m_iterations; ++i){
+			//sleep for specified interval
 			sleep(m_interval);
-actor->spawn_process();
-continue;
 
-			/*
-			sprintf(pop_file_name, "population_year_%ld.txt", i);	
-			sprintf(inf_file_name, "infection_year_%ld.txt", i);
+			printf("Year %ld\n", i+1);			
+			//printf("Total frogs in the simulation %ld\n",
+			//	actor->get_total_actors());
+			sprintf(file_name, "sim_year_%ld.txt", i+1);		
 			
-			out_pop.open(pop_file_name);
-			out_inf.open(inf_file_name);
+			out_file.open(file_name);
 
 			for(int j = m_cell_begin; j <= m_cell_end; ++j){
-				//notify arrival of monsoon
-			  	actor->send_message(m_send_buffer,
-					m_send_count, j,MSG_MONSOON_ARRIVED);
-				actor->recv_message(m_recv_buffer, 2, j);
+				int source, msg_id;
+				//notify cells arrival of monsoon
+			  	actor->send_message(m_send_buffer,j,
+							MSG_MONSOON_ARRIVED);
+				actor->recv_message(m_recv_buffer, &source, 
+								&msg_id);
 			
 				//record data in file
-				out_pop << m_recv_buffer[0] << endl;
-				out_inf << m_recv_buffer[1] << endl;
-
+				out_file << m_recv_buffer[0] << ", ";
+				out_file << m_recv_buffer[1] << endl;
+			/*	
 				printf("cell %ld= %f, %f\n",
 					j, m_recv_buffer[0], 
 					   m_recv_buffer[1]);
+			*/
 			}
 
-			out_pop.close();
-			out_inf.close();
-			*/
+			out_file.close();
 		}
-		
-	//	printf("End timer\n");
 	}
 	
 	printf("End Simulation\n");

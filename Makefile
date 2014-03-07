@@ -40,4 +40,7 @@ $(EXE):	$(OBJ)
 $(OBJ):	$(MF)
 
 clean:
-	rm -f $(OBJ) $(EXE) core
+	rm -f *.o $(EXE) core
+
+gendoc:
+	doxygen Doxyfile

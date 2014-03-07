@@ -13,7 +13,7 @@
 #define PP_DEBUG 0
 
 // Example command package data type which can be extended
-MPI_Datatype PP_COMMAND_TYPE;
+static MPI_Datatype PP_COMMAND_TYPE;
 
 // Internal pool global state
 static int PP_myRank;
@@ -51,7 +51,6 @@ int processPoolInit() {
 		return 2;
 	} else {
 		MPI_Recv(&in_command, 1, PP_COMMAND_TYPE, 0, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-//printf("WAKING PROCESS %ld\n", PP_myRank)	;
 	return handleRecievedCommand();
 	}
 }
@@ -61,20 +60,10 @@ int processPoolInit() {
  */
 void processPoolFinalise() {
 	if (PP_myRank == 0) {
-//struct PP_Control_Package out_command = createCommandPackage(PP_STOP);
-//out_command.command = PP_STOP;
-//out_command.data = 1;
-//out_command.param_a = 0.0f;
-//out_command.param_b = 0.0f;
-//out_command.param_c = 0.0f;
-//MPI_Ssend(&out_command, 1, PP_COMMAND_TYPE, 4, 1, MPI_COMM_WORLD);
-
-
 		if (PP_active != NULL) free(PP_active);
 		int i;
 		for(i=0;i<PP_numProcs-1;i++) {
-if (PP_DEBUG) 
-printf("[Master] Shutting down process %d\n", i);
+			if (PP_DEBUG) printf("[Master] Shutting down process %d\n", i);
 			struct PP_Control_Package out_command = createCommandPackage(PP_STOP);
 			MPI_Send(&out_command, 1, PP_COMMAND_TYPE, i+1, 1, MPI_COMM_WORLD);
 		}
@@ -82,8 +71,6 @@ printf("[Master] Shutting down process %d\n", i);
 
 	}
 
-
-//printf("PROCESS %ld at barrier\n", PP_myRank);
 	MPI_Barrier(MPI_COMM_WORLD);
 	MPI_Type_free(&PP_COMMAND_TYPE);
 }
@@ -289,7 +276,7 @@ static void initialiseType() {
 	MPI_Datatype oldtypes[3];
 	MPI_Aint offsets[3], extent_char, extent_int;
 	int blockcounts[3];
-	//MPI_Status stat;
+	
 	offsets[0] 	= 0;
 	oldtypes[0]	= MPI_CHAR;
 	blockcounts[0] 	= 1;
@@ -322,7 +309,7 @@ static struct PP_Control_Package createCommandPackage(enum PP_Control_Command de
 void sendMessage(void* buffer, int dest, int message_id){
 
 	static MPI_Request request;
-	struct PP_Control_Package message;
+	static struct PP_Control_Package message;
 
 	message.command = PP_CUSTOM;
 	message.param_a = ((float*)buffer)[0];
@@ -347,12 +334,15 @@ void recvMessage(void* buffer, int* source, int* msg_id){
 
 	*source = status.MPI_SOURCE;
 
-//if(*source == 0 && message.command != PP_CUSTOM)	
-//printf("MSG %ld from %ld\n", message.command, status.MPI_SOURCE);
-
 	if(status.MPI_SOURCE == 0 && message.command == PP_STOP){
 		*msg_id = PP_STOP;
 	} else {
 		*msg_id = status.MPI_TAG;
 	}
+}
+
+int getProcCount(){
+	//printf("num Proc %ld - Awaiting %ld",
+	//	PP_numProcs, PP_processesAwaitingStart);
+	return PP_numProcs - PP_processesAwaitingStart;
 }

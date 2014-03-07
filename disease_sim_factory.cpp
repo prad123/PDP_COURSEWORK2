@@ -32,7 +32,7 @@ CCallback* CDiseaseSimFactory::make_callback(unsigned int processId){
 		return new CTimer(processId, 
 				  first_cell_id, 
 			          last_cell_id, 
-				  timer_interval, 10/*m_iterations*/);
+				  timer_interval, m_iterations);
 
 	} else if(processId <= m_num_cells+1 ){
 		return new CCell(processId);

@@ -12,6 +12,7 @@ CEnvironment::CEnvironment(int num_cells,
 				m_num_cells(num_cells),
 				m_initial_frogs(initial_frogs),
 				m_infected_frogs(infected_frogs){
+	//initialize environment state
 	m_send_count = sizeof(m_send_buffer)/sizeof(m_send_buffer[0]);
 }
 
@@ -38,8 +39,7 @@ void CEnvironment::create_initial_frogs(CActor* actor){
 		else    		m_send_buffer[2] = 0;
 
 	
-		actor->send_message(m_send_buffer, m_send_count, 
-						procId, MSG_SPAWN_NEW_FROG);
+		actor->send_message(m_send_buffer, procId, MSG_SPAWN_NEW_FROG);
 	}
 }
 
@@ -48,7 +48,8 @@ int CEnvironment::create_timer(CActor* actor){
 }
 
 void CEnvironment::start_timer(int timerId, CActor* actor){
-	actor->send_message(m_send_buffer, 4, timerId, MSG_START_TIMER);
+	m_send_buffer[0] = m_send_buffer[1] = m_send_buffer[2] = 0.0f;
+	actor->send_message(m_send_buffer, timerId, MSG_START_TIMER);
 }
 
 void CEnvironment::on_load(CActor* actor){

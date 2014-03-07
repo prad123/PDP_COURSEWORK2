@@ -37,7 +37,9 @@ void shutdownPool();
 // Retrieves the optional data associated with the command, provides an example of how this can be done
 int getCommandData();
 
+//modified for actor pattern
 void sendMessage(void* buffer, int dest, int message_id);
 void recvMessage(void* buffer, int* source, int* msg_id);
+int getProcCount();
 
 #endif /* POOL_H_ */

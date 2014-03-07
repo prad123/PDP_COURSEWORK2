@@ -17,18 +17,17 @@ public:
 
 	/**routine to send MPI messages to other actors
  	*@param buffer - message data
-	*@param msg_length - message length
 	*@param dest - destination process
-	*@param message_id - message identifier
+	*@param message_id - message identifier to send
  	*/
-	void send_message(void* buffer,int msg_length,int dest,int message_id);
+	void send_message(void* buffer, int dest, int message_id);
 
 	/**routine to receive MPI message from other actors
  	*@param buffer - receive buffer
-	*@param msg_length - receive buffer length
 	*@param source - sender identifier 	
+	*@param msg_id - identifier of new message
  	*/
-	void recv_message(void* buffer, int msg_length, int *source, int*);
+	void recv_message(void* buffer, int *source, int* msg_id);
 
 	/**shutdown actor
  	*/
@@ -40,12 +39,17 @@ public:
 	
 	/**kill or sleep process
  	*/
-	void kill_process();
+	//void kill_process();
 
 	/**actor main loop to receive message from other actors
  	*and handle messages 	
  	*/
 	void run_message_loop();
+
+	/**get total number of active processes
+	 * @return total active processes
+	 */
+	int get_total_actors();
 };
 
 #endif

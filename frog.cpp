@@ -9,6 +9,7 @@
 
 CFrog::CFrog(int rank) 
 	: m_hops(0), m_pos_x(0), m_pos_y(0), m_infected(0), m_rank(rank){
+	//initialize frog state
 	m_state = -1 - m_rank;
 	m_send_count = sizeof(m_send_buffer)/sizeof(m_send_buffer[0]);
 	m_recv_count = sizeof(m_recv_buffer)/sizeof(m_recv_buffer[0]);
@@ -26,8 +27,7 @@ void CFrog::hop(CActor* actor){
 	printf("Frog %ld hopped to %ld cell\n", m_rank, newPosition);
 #endif
 	
-	actor->send_message(m_send_buffer, m_send_count, 
-				newPosition+2, MSG_VISIT_CELL);
+	actor->send_message(m_send_buffer, newPosition+2, MSG_VISIT_CELL);
 	/*Note: +2 added to new position to adjust for cell MPI process id
  	* process 0 is environment	
  	* process 1 is timer
@@ -36,6 +36,7 @@ void CFrog::hop(CActor* actor){
 }
 
 void CFrog::on_load(CActor* actor){
+
 	for(int i = 0; i < POP_CELLS; ++i){
 		m_population[i] = 0.0f;
 	}
@@ -58,17 +59,10 @@ void CFrog::spawn(CActor* actor){
 	m_send_buffer[2] = 0; //child not infected
 
 	//creat new frog at parents location
-	actor->send_message(m_send_buffer, m_send_count, 
-					child_id, MSG_SPAWN_NEW_FROG);
+	actor->send_message(m_send_buffer, child_id, MSG_SPAWN_NEW_FROG);
 }
 
 bool CFrog::on_new_message(int source, int message_id, CActor* actor){
-	
-//return false;
-
-	//if(source == 0) {
-	//printf("Frog %d got message from %ld\n", m_rank, source);
-	//}
 
 	if(message_id == MSG_CELL_INFO){//hoped to new cell
 		m_population[m_hops%POP_CELLS] = m_recv_buffer[0];
@@ -111,7 +105,7 @@ bool CFrog::on_new_message(int source, int message_id, CActor* actor){
 				#ifdef VERBOSE
 				printf("Frog %ld is dead\n", m_rank);
 				#endif
-				return false;
+				return false;//task finished
 			}
 		}
 		
